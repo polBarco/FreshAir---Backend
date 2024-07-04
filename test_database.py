@@ -35,21 +35,41 @@ class TestDatabase(unittest.TestCase):
         self.comments_to_delete.append(comment.id)
 
     def test_get_comment(self):
+        # Create a comment in the database first (assuming it's empty for this test)
+        new_comment = Comment(name="Test User", content="This is a test comment")
+        self.db.add(new_comment)
+        self.db.commit()
+
+        # Test retrieving the comment
+        response = self.client.get("/api/comment/1")
+        assert response.status_code == 200
+        assert response.json()["name"] == "Test User"
+        assert response.json()["content"] == "This is a test comment"
+    def test_get_comment(self):
         comment = create_comment("This is a test comment", self.db)
         self.comments_to_delete.append(comment.id)
         fetched_comment = get_comment(comment.id, self.db)
         self.assertEqual(fetched_comment.id, comment.id)
         self.assertEqual(fetched_comment.content, comment.content)
 
-    def test_get_comments(self):
-        comment1 = create_comment("Comment 1", self.db)
-        comment2 = create_comment("Comment 2", self.db)
-        self.comments_to_delete.append(comment1.id)
-        self.comments_to_delete.append(comment2.id)
-        comments = get_comments(db_session=self.db)
-        self.assertEqual(len(comments), 2)
-        self.assertEqual(comments[0].content, "Comment 1")
-        self.assertEqual(comments[1].content, "Comment 2")
+    def test_update_comment(self):
+        # Create a comment in the database first (assuming it's empty for this test)
+        new_comment = Comment(name="Test User", content="This is a test comment")
+        self.db.add(new_comment)
+        self.db.commit()
+
+        # Test updating the comment
+        update_data = {"content": "Updated test comment"}
+        response = self.client.put("/api/update/1", json=update_data)
+        assert response.status_code == 200
+        assert response.json()["name"] == "Test User"
+        assert response.json()["content"] == "Updated test comment"
+
+        # Verify the comment was updated
+        response = self.client.get("/api/comment/1")
+        assert response.status_code == 200
+        assert response.json()["name"] == "Test User"
+        assert response.json()["content"] == "Updated test comment"
 
     def test_update_comment(self):
         comment = create_comment("Original Comment", self.db)
@@ -58,11 +78,21 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(updated_comment.content, "Updated Comment")
 
     def test_delete_comment(self):
-        comment = create_comment("Comment to be deleted", self.db)
-        delete_success = delete_comment(comment.id, self.db)
-        self.assertTrue(delete_success)
-        deleted_comment = get_comment(comment.id, self.db)
-        self.assertIsNone(deleted_comment)
+        # Create a comment in the database first (assuming it's empty for this test)
+        new_comment = Comment(name="Test User", content="This is a test comment")
+        self.db.add(new_comment)
+        self.db.commit()
+
+        # Test deleting the comment
+        response = self.client.delete("/api/delete/1")
+        assert response.status_code == 200
+        assert response.json()["name"] == "Test User"
+        assert response.json()["content"] == "This is a test comment"
+
+        # Verify the comment was actually deleted
+        response = self.client.get("/api/comment/1")
+        assert response.status_code == 404  # Assuming 404 is returned for non-existent resources
+
 
 
 if __name__ == '__main__':

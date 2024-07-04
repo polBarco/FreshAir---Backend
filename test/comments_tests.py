@@ -5,7 +5,12 @@ from sqlalchemy.orm import sessionmaker
 
 from core.comments_database import Base
 from routes.comments_routes import Comment, create_comment, get_comment, get_comments, update_comment, delete_comment
+from schemas.comment_schemas import CommentSchema
+from starlette.testclient import TestClient
+from main import app
+from schemas.comment_schemas import CommentSchema  # Import your CommentSchema definition
 
+client = TestClient(app)
 DATABASE_URL = "sqlite:///:memory:"
 
 
@@ -31,18 +36,13 @@ class TestDatabase(unittest.TestCase):
     def tearDownClass(cls):
         Base.metadata.drop_all(cls.engine)
 
-    def test_create_comment(self):
-        async def async_create_comment():
-            comment_data = {
-                "name": "Test User",
-                "content": "This is a test comment"
-            }
-            return await create_comment(comment_data, self.db)
 
-        comment = asyncio.run(async_create_comment())
-        self.assertIsNotNone(comment.id)
-        self.assertEqual(comment.content, "This is a test comment")
-        self.comments_to_delete.append(comment.id)
+    def test_create_comment(self):
+        comment_data = CommentSchema(id= 1, name="Test User", content="This is a test comment")
+        response = client.post("/api/comment", json=comment_data.dict())
+        assert response.status_code == 200
+        assert response.json().get("name") == "Test User"
+        assert response.json().get("content") == "This is a test comment"
 
 
 
@@ -54,6 +54,12 @@ class TestDatabase(unittest.TestCase):
         fetched_comment = get_comment(comment.id, self.db)
         self.assertEqual(fetched_comment.id, comment.id)
         self.assertEqual(fetched_comment.content, comment.content)
+
+    def test_create_comment(self):
+        comment = create_comment("This is a test comment", self.db)
+        self.assertIsNotNone(comment.id)
+        self.assertEqual(comment.content, "This is a test comment")
+        self.comments_to_delete.append(comment.id)
 
     def test_get_comments(self):
         comment1 = create_comment("Comment 1", self.db)
