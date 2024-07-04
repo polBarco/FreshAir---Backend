@@ -8,7 +8,8 @@ FreshAir Backend es una aplicación que proporciona información sobre la calida
 2. [Instalación](#instalación)
 3. [Uso](#uso)
 4. [Estructura del Proyecto](#estructura-del-proyecto)
-5. [Créditos](#créditos)
+5. [Swagger](#swagger)
+6. [Créditos](#créditos)
 
 ## Requisitos
 
@@ -59,6 +60,12 @@ El codigo esta estructurado de la siguente manera:
 - main.py: Punto principal de la aplicación.
 - README.md: Este archivo.
 - requirements.txt: Lista de dependencia del proyecto.
+
+## Swagger
+
+La aplicación esta pensada para poder crear, leer, modificar i eliminar comentarios. Para visualizar estas funcionalidades podeis acceder al Swagger y los diferentes endpoints.
+
+Accede a: http://localhost:8000/docs
 
 ## Créditos
 
