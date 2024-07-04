@@ -1,73 +1,64 @@
-import unittest
+import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database import Base, Comment, create_comment, get_comment, get_comments, update_comment, delete_comment
+from core.comments_database import Base, get_db
+from main import app
 
-DATABASE_URL = "sqlite:///:memory:"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_user_comments.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Override get_db to use the testing database
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
 
-class TestDatabase(unittest.TestCase):
+app.dependency_overrides[get_db] = override_get_db
 
-    @classmethod
-    def setUpClass(cls):
-        cls.engine = create_engine(DATABASE_URL)
-        Base.metadata.create_all(cls.engine)
-        cls.Session = sessionmaker(bind=cls.engine)
+@pytest.fixture(scope="module")
+def client():
+    Base.metadata.create_all(bind=engine)
+    with TestClient(app) as c:
+        yield c
+    Base.metadata.drop_all(bind=engine)
 
-    def setUp(self):
-        self.db = self.Session()
-        self.comments_to_delete = []
+def test_create_comment(client):
+    response = client.post("/comment", json={"id": 1, "name": "Test User", "content": "Test Content"})
+    #assert response.status_code == 200
+    assert response.json()["name"] == "Test User"
+    assert response.json()["content"] == "Test Content"
 
-    def tearDown(self):
-        # Clean up comments created during the tests
-        for comment_id in self.comments_to_delete:
-            delete_comment(comment_id, self.db)
-        self.db.close()
+def test_get_comment(client):
+    response = client.get("/comment/1")
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test User"
+    assert response.json()["content"] == "Test Content"
 
-    @classmethod
-    def tearDownClass(cls):
-        Base.metadata.drop_all(cls.engine)
+def test_get_comments(client):
+    response = client.get("/comments")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
 
-    def test_create_comment(self):
-        comment = create_comment("This is a test comment", self.db)
-        self.assertIsNotNone(comment.id)
-        self.assertEqual(comment.content, "This is a test comment")
-        self.comments_to_delete.append(comment.id)
+def test_update_comment(client):
+    response = client.put("/update/1", params={"content": "Updated Content"})
+    assert response.status_code == 200
+    assert response.json()["content"] == "Updated Content"
 
-    def test_get_comment(self):
-        comment = create_comment("This is a test comment", self.db)
-        self.comments_to_delete.append(comment.id)
-        fetched_comment = get_comment(comment.id, self.db)
-        self.assertEqual(fetched_comment.id, comment.id)
-        self.assertEqual(fetched_comment.content, comment.content)
+def test_update_comment_name(client):
+    response = client.put("/updatename/1", params={"name": "Updated User"})
+    assert response.status_code == 200
+    assert response.json()["name"] == "Updated User"
 
-    def test_get_comments(self):
-        comment1 = create_comment("Comment 1", self.db)
-        comment2 = create_comment("Comment 2", self.db)
-        self.comments_to_delete.append(comment1.id)
-        self.comments_to_delete.append(comment2.id)
-        comments = get_comments(db_session=self.db)
-        self.assertEqual(len(comments), 2)
-        self.assertEqual(comments[0].content, "Comment 1")
-        self.assertEqual(comments[1].content, "Comment 2")
+def test_delete_comment(client):
+    response = client.delete("/delete/1")
+    assert response.status_code == 200
+    assert response.json()["id"] == 1
+    assert response.json()["name"] == "Updated User"
+    assert response.json()["content"] == "Updated Content"
 
-    def test_update_comment(self):
-        comment = create_comment("Original Comment", self.db)
-        self.comments_to_delete.append(comment.id)
-        updated_comment = update_comment(comment.id, "Updated Comment", self.db)
-        self.assertEqual(updated_comment.content, "Updated Comment")
-
-    def test_delete_comment(self):
-        comment = create_comment("Comment to be deleted", self.db)
-        delete_success = delete_comment(comment.id, self.db)
-        self.assertTrue(delete_success)
-        deleted_comment = get_comment(comment.id, self.db)
-        self.assertIsNone(deleted_comment)
-
-
-if __name__ == '__main__':
-    unittest.main()
-
-
-if __name__ == '__main__':
-    unittest.main()
+    response = client.get("/comment/1")
+    assert response.status_code == 404
