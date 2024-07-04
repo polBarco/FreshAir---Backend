@@ -51,17 +51,6 @@ La aplicación estará disponible en http://localhost:8000
 
 El codigo esta estructurado de la siguente manera: 
 
-.
-|-- FRESHAIR---BACKEND/
-|           |-- core/
-|           |-- routes/
-|           |-- schemas/
-|           |-- services/
-|           |-- test/
-|           |-- main.py
-|           |-- README.md
-|           |-- requirements.txt
-
 - core/: Define la estructura de la base de datos de los comentarios y la creación de la tabla.
 - routes/: Define las rutas de la API.
 - schemas/: Define los modelos de datos.
