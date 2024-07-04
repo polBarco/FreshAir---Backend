@@ -23,7 +23,3 @@ app.add_middleware(
 app.include_router(Air.router)
 app.include_router(router, prefix="/api")
 comments_models.Base.metadata.create_all(bind=engine)
-
-@app.get("/")
-def read_root():
-    return {"message": "Hola, mundo"}
