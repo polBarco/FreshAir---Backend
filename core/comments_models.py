@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, TIMESTAMP, text
 
-from database import Base
+from core.comments_database import Base
 
 
 
